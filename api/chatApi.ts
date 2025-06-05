@@ -13,9 +13,6 @@ export const fetchChats = async function fetchData(myId: number, id: number) {
         "Content-Type": "application/json",
       },
     });
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
     const data = await response.json();
     return data; // 응답 데이터를 반환
   } catch (error) {

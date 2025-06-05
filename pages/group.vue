@@ -5,6 +5,7 @@ import { useUserListStore } from "../stores/user";
 export interface GroupChatRoom {
   userIds: number[];
   chatRoomName: string;
+  regDate: string;
 }
 
 const userStore = useUserListStore();
@@ -66,6 +67,7 @@ async function handleGroupCreateClick() {
   const requestData: GroupChatRoom = {
     userIds: selectedUserIds.value,
     chatRoomName: chatRoomName.value.trim(),
+    regDate: new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString(),
   };
   console.log("전송할 데이터:", requestData);
   const data = await postGroupChatRoomCreate(requestData);

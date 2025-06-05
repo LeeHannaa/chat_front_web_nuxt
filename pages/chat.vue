@@ -135,18 +135,14 @@ function connect() {
           console.log("🟢 상대방 퇴장!!!!!!!");
         }
       } else if (parsedMessage.type === "DELETE") {
-        const deleteMsgId = parsedMessage.messageId as string;
-        console.log("🗑️ 해당 메시지 삭제!! : ", deleteMsgId);
+        const msgId = parsedMessage.messageId;
+        console.log("🗑️ 해당 메시지 삭제!! : ", msgId);
         const index = chatStore.chats.findIndex(
-          (msg: Chat) => msg.id === deleteMsgId
+          (chat: Chat) => chat.id === msgId
         );
         if (index !== -1) {
-          //        * like kakaoTalk (전체 삭제일 경우도 그냥 아예 삭제하는 피드백 반영 *
-          // chatStore.chats[index] = {
-          //   ...chatStore.chats[index],
-          //   msg: '삭제된 메시지입니다.',
-          // }
           chatStore.chats.splice(index, 1);
+          chatStore.chats = [...chatStore.chats];
         }
       } else if (parsedMessage.type === "LEAVE") {
         const message = parsedMessage.message as Chat;
@@ -215,8 +211,8 @@ async function deleteMessageToAll(msgId: string) {
   const index = chatStore.chats.findIndex((chat: Chat) => chat.id === msgId);
   if (index !== -1) {
     // chatStore.chats[index].msg = '삭제된 메시지입니다.'
+    // chatStore.chats[index].delete = true;
     chatStore.chats.splice(index, 1);
-    chatStore.chats[index].delete = true;
   }
 }
 
@@ -264,7 +260,7 @@ function changeToUrl(text?: string): string {
               class="deleteBT"
               @click="deleteMessageToAll(chat.id)"
             >
-              전체 🗑️
+              삭제
             </button>
           </div>
         </div>
@@ -288,6 +284,7 @@ function changeToUrl(text?: string): string {
 
     <div
       v-if="
+        props_from == 'person' ||
         isGroup ||
         (chatStore.chats.length > 0 && chatStore.chats[0].writerId != null)
       "

@@ -42,7 +42,7 @@ async function handleConnectUserClick(userId: number, userName: string) {
     query: {
       id: data,
       name: userName,
-      // from: 'person',
+      from: "person",
     },
   });
 }
