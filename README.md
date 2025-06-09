@@ -1,75 +1,28 @@
-# Nuxt Minimal Starter
+### 디디하우스 채팅 기능 서비스 (web.ver) : vue3 -> 'nuxt3 버전'
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
-
-## Setup
-
-Make sure to install dependencies:
-
-```bash
-# npm
-npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
-```
-
-## Development Server
-
-Start the development server on `http://localhost:3000`:
-
-```bash
-# npm
-npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
-```
-
-## Production
-
-Build the application for production:
-
-```bash
-# npm
-npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
-```
-
-Locally preview production build:
-
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+1. **소개**
+   - 디디하우스 앱/웹 내 채팅 기능 도입 (1:1) -> 단체 채팅 확장 (비회원 쪽지 문의 추가) -> 기획 변경 (유저 기준으로 채팅방 관리, 비회원 쪽지 x -> 채팅)
+2. **기간**
+   - 2025.03.18 ~
+3. **개발 과정**
+   1. **채팅 내역 파트**
+      1. 메시지 type이 ‘TEXT’와 ‘SYSTEM’으로 크게 구분
+      2. ‘TEXT’ 메시지는 각 메시지마다 unreadCount (읽지 않은 유저 수)가 있음
+      3. 채팅방에 해당하는 소켓 연결
+      4. 채팅 전송 시 /app 경로 사용
+      5. **소켓 수신 타입**
+         - **CHAT** (채팅 전송 알림)
+         - **INFO** (상대가 채팅방에 입장 알림) - 읽음 처리 해야하는 메시지 수 같이 전달
+         - **OUT** (상대가 채팅방에 퇴장 알림)
+         - **INVITE** (채팅방에 유저 초대 알림)
+         - **LEAVE** (유저가 채팅방을 나갔다는 알림) - 읽음 처리 해야하는 메시지 수 같이 전달
+         - **DELETE** (채팅 메시지 전체 삭제 알림) - 전체 삭제 한 메시지 id : “삭제된 메시지입니다.” 처리
+   2. **채팅 리스트 파트**
+      1. 각 채팅방에는 유저가 읽지 않은 채팅 수가 실시간 업데이트 및 마지막 메시지 업데이트
+      2. 유저에 해당하는 소켓 연결
+      3. ‘CHATLIST’로 실시간 정보 확인 및 업데이트
+   3. **비회원 매물 문의 파트**
+      1. 비회원은 일회성 매물 문의 메시지 전송
+      2. 비회원 채팅방은 회원만 조회 가능 (비회원 전화번호로 채팅방 분류)
+4. **API 기능 명세**
+   - <a href="https://www.notion.so/API-chat-erd-1e5caaf36f6f80218fe2f4eb729f0a44" style="color: black;">API 기능 명세 정리 바로가기</a>
