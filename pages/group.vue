@@ -69,7 +69,7 @@ async function handleGroupCreateClick() {
     chatRoomName: chatRoomName.value.trim(),
     regDate: new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString(),
   };
-  console.log("전송할 데이터:", requestData);
+  console.log("전송할 데이터:", requestData.regDate);
   const data = await postGroupChatRoomCreate(requestData);
   console.log("새로운 채팅방 생성 데이터:", data);
   // TODO : 여기서부터!!!

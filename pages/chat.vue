@@ -30,7 +30,7 @@ const myName = ref<string | null>(null);
 const roomId = ref<number | null>(null);
 const msg = ref<string | null>(null);
 const chatContainer = ref<HTMLElement | null>(null);
-const hiddenBtId = ref<string[]>([]);
+const hiddenBtId = ref<number[]>([]);
 let isGroup = false;
 
 function moveScroll() {
@@ -138,7 +138,7 @@ function connect() {
         const msgId = parsedMessage.messageId;
         console.log("🗑️ 해당 메시지 삭제!! : ", msgId);
         const index = chatStore.chats.findIndex(
-          (chat: Chat) => chat.id === msgId
+          (chat: Chat) => chat.id === Number(msgId)
         );
         if (index !== -1) {
           chatStore.chats.splice(index, 1);
@@ -206,7 +206,7 @@ function handleButtonClick() {
   }
 }
 
-async function deleteMessageToAll(msgId: string) {
+async function deleteMessageToAll(msgId: number) {
   await deleteChatMessageToAll(msgId, myId.value!);
   const index = chatStore.chats.findIndex((chat: Chat) => chat.id === msgId);
   if (index !== -1) {
@@ -216,7 +216,7 @@ async function deleteMessageToAll(msgId: string) {
   }
 }
 
-async function clickInviteUser(userId: number, msgId: string) {
+async function clickInviteUser(userId: number, msgId: number) {
   hiddenBtId.value.push(msgId);
   await postInviteUserInGroupChat(userId, roomId.value ?? 0, msgId);
 }

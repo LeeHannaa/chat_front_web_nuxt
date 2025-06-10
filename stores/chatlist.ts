@@ -42,7 +42,9 @@ export const useChatListStore = defineStore("chatlist", {
           updateLastMsgTime: new Date(
             chatMessage.updateLastMsgTime ?? Date.now()
           ),
-          unreadCount: chatMessage.unreadCount,
+          unreadCount: chatMessage.unreadCount
+            ? chatMessage.unreadCount
+            : this.chatList[index].unreadCount,
         };
       }
     },

@@ -68,7 +68,7 @@ export const deleteChatMessageToMe = async (msgId: string, myId: number) => {
   }
 };
 
-export const deleteChatMessageToAll = async (msgId: string, myId: number) => {
+export const deleteChatMessageToAll = async (msgId: number, myId: number) => {
   try {
     const url = new URL(
       `http://localhost:8080/chatmsg/delete/all/${msgId}?myId=${myId}`
@@ -142,7 +142,7 @@ export const fetchConnectUserChat = async function fetchData(
 export const postInviteUserInGroupChat = async function fetchData(
   userId: number,
   roomId: number,
-  msgId: string
+  msgId: number
 ) {
   const apiUrl = `http://localhost:8080/chat/invite/user/group`;
   console.log("초대하기 전에 전달할 데이터 확인 : ", userId, +", " + roomId);

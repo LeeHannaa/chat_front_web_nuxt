@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 
 export interface Chat {
-  id: string;
+  id: number;
   writerId: number;
   writerName: string;
   createdDate: string;
@@ -9,7 +9,7 @@ export interface Chat {
   msg?: string;
   delete?: boolean;
   unreadCount?: number;
-  beforeMsgId?: string;
+  beforeMsgId?: number;
   type?: string;
 }
 export interface postChat {
