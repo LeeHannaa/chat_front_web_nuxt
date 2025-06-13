@@ -54,7 +54,7 @@ async function getUserInfo() {
   try {
     const data = await fetchUserInfo(myId.value); // 임시 myId 넣기
     if (data) {
-      localStorage.setItem("userName", data.name);
+      localStorage.setItem("userName", data.userId);
       myName.value = localStorage.getItem("userName");
     }
   } catch (err) {

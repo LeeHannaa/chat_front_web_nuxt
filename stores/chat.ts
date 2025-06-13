@@ -4,7 +4,7 @@ export interface Chat {
   id: number;
   writerId: number;
   writerName: string;
-  createdDate: string;
+  cdate: string;
   roomId: number;
   msg?: string;
   delete?: boolean;
@@ -19,7 +19,7 @@ export interface postChat {
   writerId: number;
   roomId?: number | null;
   msg?: string;
-  regDate: string;
+  cdate: string;
 }
 
 export const useChatStore = defineStore("chat", {
@@ -42,7 +42,7 @@ export const useChatStore = defineStore("chat", {
         msg: chatMessage.msg,
         type: chatMessage.type,
         unreadCount: chatMessage.unreadCount,
-        createdDate: String(new Date(chatMessage.createdDate)),
+        cdate: String(new Date(chatMessage.cdate)),
       };
       this.chats.push(newChat);
     },
@@ -56,7 +56,7 @@ export const useChatStore = defineStore("chat", {
         type: chatMessage.type,
         delete: false,
         unreadCount: chatMessage.unreadCount,
-        createdDate: String(new Date(chatMessage.createdDate)),
+        cdate: String(new Date(chatMessage.cdate)),
       };
       this.chats.push(newChat);
     },
@@ -69,7 +69,7 @@ export const useChatStore = defineStore("chat", {
         msg: chatMessage.msg,
         type: chatMessage.type,
         beforeMsgId: chatMessage.beforeMsgId,
-        createdDate: String(new Date(chatMessage.createdDate)),
+        cdate: String(new Date(chatMessage.cdate)),
       };
       this.chats.push(newChat);
     },

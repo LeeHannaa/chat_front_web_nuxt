@@ -1,13 +1,13 @@
 import { defineStore } from "pinia";
 
 interface APT {
-  id: number;
-  name: string;
+  idx: number;
+  aptName: string;
 }
 
 export interface APTDetail {
-  id: number;
-  name: string;
+  idx: number;
+  aptName: string;
   userId: number;
 }
 

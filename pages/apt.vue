@@ -38,14 +38,17 @@ onMounted(() => {
       <div v-if="aptStore.aptList.length > 0">
         <div
           v-for="apt in aptStore.aptList"
-          :key="apt.id"
+          :key="apt.idx"
           class="apt"
           style="cursor: pointer"
         >
-          <h3 style="margin: 5px">{{ apt.name }}</h3>
+          <h3 style="margin: 5px">{{ apt.aptName }}</h3>
           <NuxtLink
             class="aptBT"
-            :to="{ path: '/aptdetail', query: { id: apt.id, name: apt.name } }"
+            :to="{
+              path: '/aptdetail',
+              query: { id: apt.idx, aptName: apt.aptName },
+            }"
           >
             상세보기
           </NuxtLink>

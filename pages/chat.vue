@@ -188,7 +188,7 @@ onUnmounted(() => {
 });
 
 function handleButtonClick() {
-  // console.log('메시지 보내기 전 사용자 이름 확인 : ', myName.value)
+  console.log("메시지 보내기 전 사용자 이름 확인 : ", myName.value);
   if (msg.value && msg.value.trim() !== "") {
     const newChat: postChat = {
       writerName: myName.value ?? "",
@@ -196,7 +196,7 @@ function handleButtonClick() {
       writerId: myId.value ?? 0,
       roomId: roomId.value ?? 0,
       msg: msg.value.trim(),
-      regDate: new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString(),
+      cdate: new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString(),
     };
     submitChatToSocket(newChat);
     // 메시지 입력칸 초기화
@@ -250,7 +250,7 @@ function changeToUrl(text?: string): string {
         <div v-if="chat.type === 'TEXT'" class="chat-content">
           <h3 v-if="chat.writerId !== myId">{{ chat.writerName }}</h3>
           <p class="msg-text" v-html="changeToUrl(chat.msg ?? '')"></p>
-          <p class="date-text">{{ formatDate(chat.createdDate) }}</p>
+          <p class="date-text">{{ formatDate(chat.cdate) }}</p>
           <div>
             <span class="isread">{{
               chat?.unreadCount && chat.unreadCount > 0 ? chat.unreadCount : ""
@@ -323,6 +323,7 @@ function changeToUrl(text?: string): string {
   display: flex;
   flex-direction: column;
   height: 80%;
+  margin-bottom: 50px;
   overflow: auto;
 }
 
