@@ -2,7 +2,7 @@ export interface NoteNonMember {
   aptId: number;
   phoneNumber: string;
   noteText: string;
-  regDate: string;
+  cdate: string;
 }
 
 export interface ChatInfo {

@@ -14,7 +14,7 @@ const aptDetail = ref<APTDetail | null>(null);
 const route = useRoute();
 // 쿼리에서 파라미터 추출
 const props_id = Number(route.query.id);
-const props_name = String(route.query.name);
+const props_name = String(route.query.aptName);
 
 async function getAPTDetail() {
   try {
@@ -22,8 +22,8 @@ async function getAPTDetail() {
     if (data) {
       console.log("매물 목록:", data);
       aptDetail.value = {
-        id: data.id, // 매물 아이디
-        name: props_name,
+        idx: data.idx, // 매물 아이디
+        aptName: props_name,
         userId: data.userId,
       };
     }
@@ -52,7 +52,7 @@ function handleAPTClick() {
     writerId: myId.value ?? 0,
     roomId: null,
     msg: decodeURIComponent(window.location.href),
-    regDate: new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString(),
+    cdate: new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString(),
   };
   submitChatToSocket(newChat);
 
@@ -85,7 +85,7 @@ async function handleSendNoteClick() {
     phoneNumber: phoneNumber.value.trim(),
     noteText:
       decodeURIComponent(window.location.href) + " : " + noteText.value.trim(),
-    regDate: new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString(),
+    cdate: new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString(),
   };
   console.log("전송할 데이터:", requestData);
   const data = await postNoteByNonMember(requestData);
@@ -103,7 +103,7 @@ async function handleSendNoteClick() {
     <div class="main">
       <h3>매물 상세 정보 페이지</h3>
       <div class="aptDetail" style="cursor: pointer">
-        <h3>{{ aptDetail?.name }}</h3>
+        <h3>{{ aptDetail?.aptName }}</h3>
         <p style="margin-bottom: 50px">기타 등등의 정보들</p>
         <div v-if="myId != null">
           <button v-if="aptDetail?.userId === myId" class="aptDetailBT">

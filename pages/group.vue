@@ -5,7 +5,7 @@ import { useUserListStore } from "../stores/user";
 export interface GroupChatRoom {
   userIds: number[];
   chatRoomName: string;
-  regDate: string;
+  cdate: string;
 }
 
 const userStore = useUserListStore();
@@ -67,16 +67,16 @@ async function handleGroupCreateClick() {
   const requestData: GroupChatRoom = {
     userIds: selectedUserIds.value,
     chatRoomName: chatRoomName.value.trim(),
-    regDate: new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString(),
+    cdate: new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString(),
   };
-  console.log("전송할 데이터:", requestData.regDate);
+  console.log("전송할 데이터:", requestData.cdate);
   const data = await postGroupChatRoomCreate(requestData);
   console.log("새로운 채팅방 생성 데이터:", data);
   // TODO : 여기서부터!!!
   router.push({
     path: "/chat",
     query: {
-      id: data.id,
+      id: data.idx,
       name: data.name,
       from: "group",
     },
@@ -92,17 +92,17 @@ async function handleGroupCreateClick() {
       <div v-if="userStore.userList.length > 0">
         <div
           v-for="user in userStore.userList"
-          :key="user.id"
+          :key="user.userIdx"
           class="user"
           style="cursor: pointer"
         >
-          <h3>{{ user.name }}</h3>
+          <h3>{{ user.userId }}</h3>
           <button
             :class="{
               groupBT: true,
-              active: selectedUserIds.includes(user.id),
+              active: selectedUserIds.includes(user.userIdx),
             }"
-            @click="handleGroupClick(user.id)"
+            @click="handleGroupClick(user.userIdx)"
           >
             선택
           </button>

@@ -55,14 +55,14 @@ async function handleConnectUserClick(userId: number, userName: string) {
       <div v-if="userStore.userList.length > 0">
         <div
           v-for="user in userStore.userList"
-          :key="user.id"
+          :key="user.userIdx"
           class="user"
           style="cursor: pointer"
         >
-          <h3>{{ user.name }}</h3>
+          <h3>{{ user.userId }}</h3>
           <button
             class="personBT"
-            @click="handleConnectUserClick(user.id, user.name)"
+            @click="handleConnectUserClick(user.userIdx, user.userId)"
           >
             연락
           </button>
