@@ -3,8 +3,9 @@ import type { APTDetail } from "@/stores/apt";
 import { fetchAPTDetailList } from "../api/aptApi";
 import { postNoteByNonMember } from "../api/noteApi";
 import type { postChat } from "../stores/chat";
-import { connectWebSocket, submitChatToSocket } from "../utils/socketService";
+import { submitChatToSocket } from "../utils/socketService";
 import type { ChatInfo, NoteNonMember } from "~/stores/model";
+import { useWebSocketStore } from "~/stores/socket";
 
 const router = useRouter();
 const myId = ref<number | null>(null);
@@ -15,6 +16,25 @@ const route = useRoute();
 // 쿼리에서 파라미터 추출
 const props_id = Number(route.query.id);
 const props_name = String(route.query.aptName);
+
+const store = useWebSocketStore();
+watch(
+  () => store.latestMessage,
+  (msg: WebSocketMessage | null) => {
+    if (!msg) return;
+
+    if (msg.type === "CLEAR_ROOM") {
+      const info = msg.message as ChatInfo;
+      router.push({
+        path: "/chat",
+        query: {
+          id: info.roomId,
+          name: info.name,
+        },
+      });
+    }
+  }
+);
 
 async function getAPTDetail() {
   try {
@@ -55,26 +75,6 @@ function handleAPTClick() {
     cdate: new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString(),
   };
   submitChatToSocket(newChat);
-
-  // TODO : 방 생성이 완료되면 방 ID 또는 완료 신호를 받고 채팅방으로 이동
-  if (myId.value) {
-    connectWebSocket(myId.value, (parsedMessage) => {
-      if (parsedMessage.type === "CLEAR_ROOM") {
-        const info = parsedMessage.message as ChatInfo;
-        console.log(info);
-        // 채팅방으로 이동
-        // 받아야 하는 정보 : 방 아이디, 상대방 이름,
-        router.push({
-          path: "/chat",
-          query: {
-            id: info.roomId,
-            name: info.name,
-            // from: 'aptlist',
-          },
-        });
-      }
-    });
-  }
 }
 
 const phoneNumber = ref("");

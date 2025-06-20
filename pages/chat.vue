@@ -7,12 +7,12 @@ import {
 } from "../api/chatApi";
 // Store
 import { useChatStore, type Chat, type postChat } from "@/stores/chat";
+import { useWebSocketStore } from "~/stores/socket";
 // Utils
 import { formatDate } from "~/utils/formatDate";
 import {
-  createOnConnectByChatHandler,
   submitChatToSocket,
-  unsubscribeFromChatRoom,
+  type WebSocketMessage,
 } from "~/utils/socketService";
 
 // 쿼리에서 파라미터 추출
@@ -33,6 +33,86 @@ const chatContainer = ref<HTMLElement | null>(null);
 const hiddenBtId = ref<number[]>([]);
 let isGroup = false;
 
+const store = useWebSocketStore();
+watch(
+  () => store.latestMessage,
+  (msg: WebSocketMessage | null) => {
+    if (!msg) return;
+    if (msg.type === "CHAT") {
+      console.log("💬 채팅 메시지 수신:", msg);
+      const chat = msg.message as Chat;
+      chatStore.addChat(chat);
+      moveScroll();
+    } else if (msg.type === "INFO") {
+      console.log(
+        "🟢 상대방 입장!, 읽음처리해야할 메시지 개수 : ",
+        msg.message
+      );
+      // 상대방 입장 시 상대가 해당 채팅방에서 읽지 않았던 메시지 개수만큼 정보 전달! 그거보고 unreadCount 감소처리
+      // 여기서 필요한 처리 (예: 읽음 처리, UI 변경 등)
+      const changeNumber = parseInt(msg.message as string);
+      for (
+        let i = chatStore.chats.length - 1;
+        i > Math.max(0, chatStore.chats.length - changeNumber - 1);
+        i--
+      ) {
+        if (chatStore.chats[i].type == "TEXT") {
+          if (chatStore.chats[i].unreadCount == 0) break;
+          chatStore.chats[i].unreadCount =
+            (chatStore.chats[i].unreadCount ?? 1) - 1;
+        }
+      }
+    } else if (msg.type === "OUT") {
+      if (msg.message === "상대방 퇴장") {
+        console.log("🟢 상대방 퇴장!!!!!!!");
+      }
+    } else if (msg.type === "DELETE") {
+      const msgId = msg.messageId;
+      console.log("🗑️ 해당 메시지 삭제!! : ", msgId);
+      const index = chatStore.chats.findIndex(
+        (chat: Chat) => chat.id === Number(msgId)
+      );
+      if (index !== -1) {
+        chatStore.chats.splice(index, 1);
+        chatStore.chats = [...chatStore.chats];
+      }
+    } else if (msg.type === "LEAVE") {
+      const message = msg.message as Chat;
+      const changeNumber = msg.msgToReadCount;
+      console.log(
+        "🗑️ 해당 유저 나감!! : ",
+        msg.message,
+        "읽음처리 수 : ",
+        changeNumber
+      );
+      for (
+        let i = chatStore.chats.length - 1;
+        i > Math.max(0, chatStore.chats.length - changeNumber - 1);
+        i--
+      ) {
+        if (chatStore.chats[i].type == "TEXT") {
+          if (chatStore.chats[i].unreadCount == 0) break;
+          chatStore.chats[i].unreadCount =
+            (chatStore.chats[i].unreadCount ?? 1) - 1;
+        }
+      }
+      chatStore.addChatLeaveText(message);
+      moveScroll();
+    } else if (msg.type === "INVITE") {
+      const chatMessage = msg.message as Chat;
+      console.log("해당 유저 들어옴!! : ", chatMessage);
+      chatStore.addChatInviteText(chatMessage);
+      // 초대 메시지를 상대가 눌렀다면 나의 ui에서도 안보이게 해주기
+      if (!hiddenBtId.value.includes(chatMessage.beforeMsgId!)) {
+        hiddenBtId.value.push(chatMessage.beforeMsgId!);
+      }
+      moveScroll();
+    } else {
+      console.log("⚠️ 알 수 없는 메시지 타입:", msg.type);
+    }
+  }
+);
+
 function moveScroll() {
   nextTick(() => {
     if (chatContainer.value) {
@@ -48,8 +128,8 @@ async function getChats() {
   }
   if (props_from == "group") {
     roomId.value = props_id;
+    submitChatToIncome(myId.value!, roomId.value!);
     isGroup = props_from === "group";
-    connect(); // 웹소켓 연결
   } else {
     try {
       const data = await fetchChats(myId.value, props_id);
@@ -59,6 +139,7 @@ async function getChats() {
           // 기존에 존재하던 대화방
           chatStore.setChats(data || []);
           roomId.value = data[0]?.roomId;
+          submitChatToIncome(myId.value!, roomId.value!);
           console.log(
             "채팅방 아이디 : ",
             roomId.value,
@@ -69,9 +150,9 @@ async function getChats() {
         } else {
           // 방이 새로 만들어진 경우에는 setChats를 하지 않음
           roomId.value = data[0]?.roomId || null;
+          submitChatToIncome(myId.value!, roomId.value!);
           console.log("처음 방 생성!! 방 아이디 : ", roomId);
         }
-        connect(); // 웹소켓 연결
         unreadCountByMe = await fetchUnreadCountByRoom(
           roomId?.value ?? 0,
           myId?.value ?? 0
@@ -99,92 +180,10 @@ onMounted(() => {
   getChats();
 });
 
-// TODO : socketService에 함수 사용해서 소켓 구독 경로 추가하는 로직으로 변경
-function connect() {
-  const subscribeToChat = createOnConnectByChatHandler(
-    roomId.value!,
-    myId.value!,
-    (parsedMessage) => {
-      console.log("채팅방 웹소켓 연결 성공!!!!!!!!!!!!!!");
-      if (parsedMessage.type === "CHAT") {
-        console.log("💬 채팅 메시지 수신:", parsedMessage);
-        const chat = parsedMessage.message as Chat;
-        chatStore.addChat(chat);
-        moveScroll();
-      } else if (parsedMessage.type === "INFO") {
-        console.log(
-          "🟢 상대방 입장!, 읽음처리해야할 메시지 개수 : ",
-          parsedMessage.message
-        );
-        // 상대방 입장 시 상대가 해당 채팅방에서 읽지 않았던 메시지 개수만큼 정보 전달! 그거보고 unreadCount 감소처리
-        // 여기서 필요한 처리 (예: 읽음 처리, UI 변경 등)
-        const changeNumber = parseInt(parsedMessage.message as string);
-        for (
-          let i = chatStore.chats.length - 1;
-          i > Math.max(0, chatStore.chats.length - changeNumber - 1);
-          i--
-        ) {
-          if (chatStore.chats[i].type == "TEXT") {
-            if (chatStore.chats[i].unreadCount == 0) break;
-            chatStore.chats[i].unreadCount =
-              (chatStore.chats[i].unreadCount ?? 1) - 1;
-          }
-        }
-      } else if (parsedMessage.type === "OUT") {
-        if (parsedMessage.message === "상대방 퇴장") {
-          console.log("🟢 상대방 퇴장!!!!!!!");
-        }
-      } else if (parsedMessage.type === "DELETE") {
-        const msgId = parsedMessage.messageId;
-        console.log("🗑️ 해당 메시지 삭제!! : ", msgId);
-        const index = chatStore.chats.findIndex(
-          (chat: Chat) => chat.id === Number(msgId)
-        );
-        if (index !== -1) {
-          chatStore.chats.splice(index, 1);
-          chatStore.chats = [...chatStore.chats];
-        }
-      } else if (parsedMessage.type === "LEAVE") {
-        const message = parsedMessage.message as Chat;
-        const changeNumber = parsedMessage.msgToReadCount;
-        console.log(
-          "🗑️ 해당 유저 나감!! : ",
-          parsedMessage.message,
-          "읽음처리 수 : ",
-          changeNumber
-        );
-        for (
-          let i = chatStore.chats.length - 1;
-          i > Math.max(0, chatStore.chats.length - changeNumber - 1);
-          i--
-        ) {
-          if (chatStore.chats[i].type == "TEXT") {
-            if (chatStore.chats[i].unreadCount == 0) break;
-            chatStore.chats[i].unreadCount =
-              (chatStore.chats[i].unreadCount ?? 1) - 1;
-          }
-        }
-        chatStore.addChatLeaveText(message);
-        moveScroll();
-      } else if (parsedMessage.type === "INVITE") {
-        const chatMessage = parsedMessage.message as Chat;
-        console.log("해당 유저 들어옴!! : ", chatMessage);
-        chatStore.addChatInviteText(chatMessage);
-        // 초대 메시지를 상대가 눌렀다면 나의 ui에서도 안보이게 해주기
-        if (!hiddenBtId.value.includes(chatMessage.beforeMsgId!)) {
-          hiddenBtId.value.push(chatMessage.beforeMsgId!);
-        }
-        moveScroll();
-      } else {
-        console.log("⚠️ 알 수 없는 메시지 타입:", parsedMessage.type);
-      }
-    }
-  );
-  subscribeToChat();
-}
 onUnmounted(() => {
-  if (roomId.value && myId.value)
-    unsubscribeFromChatRoom(roomId.value, myId.value);
+  submitChatToLeave(myId.value!, roomId.value!);
+  // if (roomId.value && myId.value)
+  //   unsubscribeFromChatRoom(roomId.value, myId.value);
 });
 
 function handleButtonClick() {

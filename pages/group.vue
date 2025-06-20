@@ -72,7 +72,6 @@ async function handleGroupCreateClick() {
   console.log("전송할 데이터:", requestData.cdate);
   const data = await postGroupChatRoomCreate(requestData);
   console.log("새로운 채팅방 생성 데이터:", data);
-  // TODO : 여기서부터!!!
   router.push({
     path: "/chat",
     query: {

@@ -36,7 +36,6 @@ const router = useRouter();
 async function handleConnectUserClick(userId: number, userName: string) {
   const data = await fetchConnectUserChat(userId, myId.value!); // roomId 전달받기
   console.log("개인 연락 : ", data);
-  // TODO : 여기서부터!!!
   router.push({
     path: "/chat",
     query: {

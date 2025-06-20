@@ -1,33 +1,42 @@
 import type { Chat, postChat } from "@/stores/chat";
 import type { ChatRoom } from "@/stores/chatlist";
 import { Client, type IMessage, type StompSubscription } from "@stomp/stompjs";
+import { useWebSocketStore } from "@/stores/socket";
 
 export interface WebSocketMessage {
   type: string;
-  message: ChatRoom;
-}
-
-export interface WebSocketMessageChat {
-  type: string;
-  message: JSON | string | Chat;
+  message: JSON | string | Chat | ChatRoom;
   messageId: string;
   msgToReadCount: number;
 }
 
 let websocketClient: Client | null = null;
 let subscription: StompSubscription | null = null;
+let connected = false;
 const subscriptions: Map<string, StompSubscription> = new Map();
 
-export function connectWebSocket(
-  myId: number,
-  onMessage: (parsedMessage: WebSocketMessage) => void
-) {
+// -> 처음 한번 웹소켓 구독 후 해당 구독 경로에 대해서 전달 받은 메시지를 다른 페이지, 컴포넌트에 반영해야함.
+export function connectWebSocket(myId: number) {
   const url = "ws://localhost:8080/ws-stomp";
+
+  if (websocketClient && connected) {
+    console.log("✅connectWebSocket : 이미 웹소켓 연결되어 있음");
+    return;
+  }
 
   websocketClient = new Client({
     brokerURL: url,
     debug: (str) => console.log(str),
-    onConnect: createOnConnectHandler(myId, onMessage), // 기본 구독 경로
+    onConnect: () => {
+      connected = true;
+      createOnConnectHandler(myId)();
+      console.log("✅ 웹소켓 연결 완료");
+    },
+    onDisconnect: () => {
+      connected = false;
+      subscriptions.delete(`/topic/chat/${myId}`);
+      console.log("onDisconnect : 웹소켓 연결 해제됨");
+    },
     onStompError: (frame) => {
       console.error("STOMP 에러:", frame);
     },
@@ -35,18 +44,25 @@ export function connectWebSocket(
   websocketClient.activate();
 }
 
-function createOnConnectHandler(
-  myId: number,
-  onMessage: (parsedMessage: WebSocketMessage) => void
-) {
+function createOnConnectHandler(myId: number) {
   return () => {
-    const destination = `/topic/user/${myId}`;
+    const destination = `/topic/chat/${myId}`;
+    if (subscriptions.has(destination)) {
+      console.log("createOnConnectHandler : 이미 구독된 경로");
+      return;
+    }
+    if (!websocketClient || !connected) {
+      console.log("❌ 웹소켓이 아직 연결되지 않았습니다.");
+      return;
+    }
+    const websocketStore = useWebSocketStore();
     subscription = websocketClient!.subscribe(
       destination,
       (message: IMessage) => {
         try {
           const parsedMessage: WebSocketMessage = JSON.parse(message.body);
-          onMessage(parsedMessage);
+          console.log("소켓 연결에서 확인해보기 : ", parsedMessage);
+          websocketStore.latestMessage = parsedMessage;
         } catch (error) {
           console.error("웹소켓 기본 구독 경로 메시지 파싱 오류:", error);
         }
@@ -56,53 +72,37 @@ function createOnConnectHandler(
   };
 }
 
-// 채팅방 구독 경로
-export function createOnConnectByChatHandler(
-  roomId: number,
-  myId: number,
-  onMessage: (parsedMessage: WebSocketMessageChat) => void
-) {
-  return () => {
-    const destination = `/topic/chatroom/${roomId}`;
-    const subscriptionId = `chatroom-${roomId}-user-${myId}`;
-    subscription = websocketClient!.subscribe(
-      destination,
-      (message) => {
-        try {
-          const parsedMessage = JSON.parse(
-            message.body
-          ) as WebSocketMessageChat;
-          onMessage(parsedMessage);
-        } catch (error) {
-          console.error("웹소켓 채팅방 구독 경로 메시지 파싱 오류:", error);
-        }
-      },
-      {
-        id: subscriptionId,
-        // myId: String(myId), // 헤더에 myId 추가
-      }
-    );
-    subscriptions.set(subscriptionId, subscription);
-  };
-}
-
-/// 채팅방 구독 취소
-export function unsubscribeFromChatRoom(roomId: number, myId: number) {
-  const subscriptionId = `chatroom-${roomId}-user-${myId}`;
-  if (subscriptions.has(subscriptionId)) {
-    const sub = subscriptions.get(subscriptionId);
-    console.log("구독 취소할 때 sub 확인 : ", sub);
-    sub?.unsubscribe(); // 서버로 UNSUBSCRIBE 전송됨
-    subscriptions.delete(subscriptionId);
-    console.log(`❌ Unsubscribed from ${subscriptionId}`);
-  }
-}
-
 export function submitChatToSocket(newChat: postChat) {
   try {
+    if (!websocketClient || !connected) {
+      console.warn("❌ 웹소켓이 아직 연결되지 않았습니다.");
+      return;
+    }
     websocketClient!.publish({
       destination: "/app/message",
       body: JSON.stringify(newChat),
+    });
+  } catch (e) {
+    console.log("채팅 전송 실패 : ", e);
+  }
+}
+
+export function submitChatToIncome(userId: number, roomId: number) {
+  try {
+    websocketClient!.publish({
+      destination: `/app/chat/income`,
+      body: JSON.stringify({ roomId: roomId, userId: userId }),
+    });
+  } catch (e) {
+    console.log("채팅 전송 실패 : ", e);
+  }
+}
+
+export function submitChatToLeave(userId: number, roomId: number) {
+  try {
+    websocketClient!.publish({
+      destination: `/app/chat/leave`,
+      body: JSON.stringify({ roomId: roomId, userId: userId }),
     });
   } catch (e) {
     console.log("채팅 전송 실패 : ", e);
@@ -118,6 +118,6 @@ export async function disconnectWebSocket() {
   if (websocketClient?.connected || websocketClient?.active) {
     await websocketClient.deactivate();
     websocketClient = null;
-    console.log("웹소켓 연결 종료");
+    console.log("disconnectWebSocket : 웹소켓 연결 종료");
   }
 }

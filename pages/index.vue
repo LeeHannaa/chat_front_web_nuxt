@@ -1,14 +1,44 @@
 <script setup lang="ts">
+import { useWebSocketStore } from "~/stores/socket";
 import { fetchChatList, fetchChatDelete } from "../api/chatlistApi";
 import { fetchUserInfo } from "../api/userApi";
 import { useChatListStore, type ChatRoom } from "../stores/chatlist";
 import { formatDate } from "../utils/formatDate";
-import { connectWebSocket, disconnectWebSocket } from "../utils/socketService";
+import {
+  connectWebSocket,
+  disconnectWebSocket,
+  type WebSocketMessage,
+} from "../utils/socketService";
 
 const router = useRouter();
 const chatStore = useChatListStore();
 const myId = ref<number | null>(null);
 const myName = ref<string | null>(null);
+
+const store = useWebSocketStore();
+watch(
+  () => store.latestMessage,
+  (msg: WebSocketMessage | null) => {
+    if (!msg) return;
+    if (msg.type === "CHATLIST") {
+      const chatMessage = msg.message as ChatRoom;
+      console.log(chatMessage);
+
+      const index = chatStore.chatList.findIndex(
+        (chat: ChatRoom) => chat.roomId === chatMessage.roomId
+      );
+      if (index !== -1) {
+        // 이미 있는 채팅방: 정보 업데이트
+        chatStore.updateChatRoom(chatMessage, index);
+      } else {
+        // 새로운 채팅방 추가
+        chatStore.addChatRoom(chatMessage);
+      }
+      // 시간 기준으로 정렬
+      chatStore.sortChatListByLastMsgTime();
+    }
+  }
+);
 
 async function getChatList() {
   if (myId.value === null) return;
@@ -21,34 +51,11 @@ async function getChatList() {
       chatStore.sortChatListByLastMsgTime();
       console.log("채팅 목록:", data);
     }
-    setupSocket(); // 해당 아이디에 소켓 연결
   } catch (err) {
     console.error(err);
   }
 }
-function setupSocket() {
-  if (myId.value) {
-    connectWebSocket(myId.value, (parsedMessage) => {
-      if (parsedMessage.type === "CHATLIST") {
-        const chatMessage = parsedMessage.message as ChatRoom;
-        console.log(chatMessage);
 
-        const index = chatStore.chatList.findIndex(
-          (chat: ChatRoom) => chat.roomId === chatMessage.roomId
-        );
-        if (index !== -1) {
-          // 이미 있는 채팅방: 정보 업데이트
-          chatStore.updateChatRoom(chatMessage, index);
-        } else {
-          // 새로운 채팅방 추가
-          chatStore.addChatRoom(chatMessage);
-        }
-        // 시간 기준으로 정렬
-        chatStore.sortChatListByLastMsgTime();
-      }
-    });
-  }
-}
 async function getUserInfo() {
   if (myId.value === null) return;
   try {
@@ -61,10 +68,12 @@ async function getUserInfo() {
     console.error(err);
   }
 }
-function handleButtonClick() {
-  disconnectWebSocket(); // 이름 수정 시 소켓 연결 해제
+
+async function handleButtonClick() {
   if (myId.value !== null) {
-    getChatList();
+    await disconnectWebSocket(); // 이름 수정 시 소켓 연결 해제
+    connectWebSocket(myId.value);
+    getChatList(); // 리스트 가져오기
   } else {
     console.error("사용자 아이디를 입력해 주세요.");
   }
@@ -89,7 +98,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  // disconnectWebSocket()
+  // disconnectWebSocket();
 });
 
 function handleChatClick(chat: { roomId: number; name: string }) {
